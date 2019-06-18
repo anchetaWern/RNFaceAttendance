@@ -1,0 +1,30 @@
+{
+  "name": "RNFaceAttendance",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "dependencies": {
+    "bytes-counter": "^1.0.0",
+    "convert-string": "^0.1.0",
+    "random-id": "^1.0.3",
+    "react": "16.8.3",
+    "react-native": "0.59.9",
+    "react-native-ble-manager": "^6.6.6",
+    "react-native-exit-app": "^1.0.0",
+    "react-native-prompt-android": "^0.3.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/runtime": "^7.4.5",
+    "babel-jest": "^24.8.0",
+    "jest": "^24.8.0",
+    "metro-react-native-babel-preset": "^0.54.1",
+    "react-test-renderer": "16.8.3"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}
