@@ -7,14 +7,18 @@
     "test": "jest"
   },
   "dependencies": {
+    "axios": "^0.19.0",
+    "base64-arraybuffer": "^0.2.0",
     "bytes-counter": "^1.0.0",
     "convert-string": "^0.1.0",
     "random-id": "^1.0.3",
     "react": "16.8.3",
     "react-native": "0.59.9",
     "react-native-ble-manager": "^6.6.6",
+    "react-native-camera": "^2.10.2",
     "react-native-exit-app": "^1.0.0",
-    "react-native-prompt-android": "^0.3.5"
+    "react-native-prompt-android": "^0.3.5",
+    "react-native-vector-icons": "^6.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",

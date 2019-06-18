@@ -11,7 +11,8 @@ import {
   Button,
   FlatList,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  TouchableOpacity
 } from 'react-native';
 
 import RNExitApp from 'react-native-exit-app';
@@ -25,6 +26,23 @@ import RandomId from 'random-id';
 import bytesCounter from 'bytes-counter';
 import prompt from 'react-native-prompt-android';
 
+import { RNCamera } from 'react-native-camera';
+import base64ToArrayBuffer from 'base64-arraybuffer';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import axios from 'axios';
+
+const key = 'YOUR COGNITIVE SERVICES API KEY';
+const loc = 'southeastasia.api.cognitive.microsoft.com'; // replace with the server nearest to you (https://westus.dev.cognitive.microsoft.com/docs/services/563879b61984550e40cbbe8d/operations/563879b61984550f30395237)
+
+const base_instance_options = {
+  baseURL: `https://${loc}/face/v1.0`,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Ocp-Apim-Subscription-Key': key
+  }
+};
+
 export default class App extends Component {
 
   state = {
@@ -32,7 +50,9 @@ export default class App extends Component {
     peripherals: null,
     connected_peripheral: null,
     user_id: '',
-    fullname: ''
+    fullname: '',
+    show_camera: false,
+    is_loading: false
   }
 
   constructor(props) {
@@ -69,7 +89,6 @@ export default class App extends Component {
 
   componentDidMount() {
     bleManagerEmitter.addListener('BleManagerDiscoverPeripheral', (peripheral) => {
-
       var peripherals = this.peripherals;
       var el = peripherals.filter((el) => {
         return el.id === peripheral.id;
@@ -89,7 +108,7 @@ export default class App extends Component {
       'BleManagerStopScan',
       () => {
         console.log('scan stopped');
-        if(this.peripherals.length == 0){
+        if (this.peripherals.length == 0) {
           Alert.alert('Nothing found', "Sorry, no peripherals were found");
         }
         this.setState({
@@ -108,7 +127,7 @@ export default class App extends Component {
       is_scanning: true
     });
 
-    BleManager.scan([], 2, true)
+    BleManager.scan([], 3, true)
     .then(() => {
       console.log('scan started');
     });
@@ -159,9 +178,8 @@ export default class App extends Component {
   enterRoom = (value) => {
     this.setState({
       user_id: RandomId(15),
-      fullname: value
-    }, () => {
-      this.attend();
+      fullname: value,
+      show_camera: true
     });
   }
 
@@ -220,48 +238,147 @@ export default class App extends Component {
 
 
   render() {
-    const { connected_peripheral, is_scanning, peripherals } = this.state;
+    const { connected_peripheral, is_scanning, peripherals, show_camera, is_loading } = this.state;
 
     return (
       <SafeAreaView style={{flex: 1}}>
         <View style={styles.container}>
-
-          <View style={styles.header}>
-            <View style={styles.app_title}>
-              <Text style={styles.header_text}>BLE Face Attendance</Text>
+          {
+            !show_camera &&
+            <View style={styles.header}>
+              <View style={styles.app_title}>
+                <Text style={styles.header_text}>BLE Face Attendance</Text>
+              </View>
+              <View style={styles.header_button_container}>
+                {
+                  !connected_peripheral &&
+                  <Button
+                    title="Scan"
+                    color="#1491ee"
+                    onPress={this.startScan} />
+                }
+              </View>
             </View>
-            <View style={styles.header_button_container}>
-              {
-                !connected_peripheral &&
-                <Button
-                  title="Scan"
-                  color="#1491ee"
-                  onPress={this.startScan} />
-              }
-            </View>
-          </View>
-
+          }
 
           <View style={styles.body}>
             {
-              is_scanning &&
+              !show_camera && is_scanning &&
               <ActivityIndicator size="large" color="#0000ff" />
             }
 
             {
-              !connected_peripheral &&
+              show_camera &&
+              <View style={styles.camera_container}>
+                {
+                  is_loading &&
+                  <ActivityIndicator size="large" color="#0000ff" />
+                }
+
+                {
+                  !is_loading &&
+                  <View style={{flex: 1}}>
+                    <RNCamera
+                      ref={ref => {
+                        this.camera = ref;
+                      }}
+                      style={styles.preview}
+                      type={RNCamera.Constants.Type.front}
+                      flashMode={RNCamera.Constants.FlashMode.on}
+                      captureAudio={false}
+                    />
+
+                    <View style={styles.camer_button_container}>
+                      <TouchableOpacity onPress={this.takePicture} style={styles.capture}>
+                        <MaterialIcons name="camera" size={50} color="#e8e827" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                }
+
+              </View>
+            }
+
+            {
+              !connected_peripheral && !show_camera &&
               <FlatList
                 data={peripherals}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={this.renderItem}
               />
             }
+
           </View>
         </View>
       </SafeAreaView>
     );
   }
   //
+
+  takePicture = async() => {
+    if (this.camera) {
+      this.setState({
+        is_loading: true
+      });
+
+      const data = await this.camera.takePictureAsync({ quality: 0.25, base64: true });
+      const selfie_ab = base64ToArrayBuffer.decode(data.base64);
+
+      try {
+        const facedetect_instance_options = { ...base_instance_options };
+        facedetect_instance_options.headers['Content-Type'] = 'application/octet-stream';
+        const facedetect_instance = axios.create(facedetect_instance_options);
+
+        const facedetect_res = await facedetect_instance.post(
+          `/detect?returnFaceId=true&detectionModel=detection_02`,
+          selfie_ab
+        );
+
+        console.log("face detect res: ", facedetect_res.data);
+
+        if (facedetect_res.data.length) {
+
+          const findsimilars_instance_options = { ...base_instance_options };
+          findsimilars_instance_options.headers['Content-Type'] = 'application/json';
+          const findsimilars_instance = axios.create(findsimilars_instance_options);
+          const findsimilars_res = await findsimilars_instance.post(
+            `/findsimilars`,
+            {
+              faceId: facedetect_res.data[0].faceId,
+              faceListId: 'wern-faces-01',
+              maxNumOfCandidatesReturned: 2,
+              mode: 'matchPerson'
+            }
+          );
+
+          console.log("find similars res: ", findsimilars_res.data);
+
+          this.setState({
+            is_loading: false
+          });
+
+          if (findsimilars_res.data.length) {
+
+            Alert.alert("Found match!", "You've successfully attended!");
+            this.attend();
+
+          } else {
+            Alert.alert("No match found", "Sorry, you are not registered");
+          }
+
+        } else {
+          Alert.alert("error", "Cannot find any face. Please make sure there is sufficient light when taking a selfie");
+        }
+
+      } catch (err) {
+        console.log("err: ", err);
+        this.setState({
+          is_loading: false
+        });
+      }
+    }
+  }
+
 }
 //
 
@@ -314,5 +431,22 @@ const styles = StyleSheet.create({
   },
   list_item_button: {
     flex: 2
+  },
+
+  camera_container: {
+    flex: 1,
+    flexDirection: 'column',
+    backgroundColor: 'black'
+  },
+  preview: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  camer_button_container: {
+    flex: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: '#333'
   }
 });
