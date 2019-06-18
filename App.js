@@ -317,12 +317,12 @@ export default class App extends Component {
 
   takePicture = async() => {
     if (this.camera) {
+      const data = await this.camera.takePictureAsync({ quality: 0.25, base64: true });
+      const selfie_ab = base64ToArrayBuffer.decode(data.base64);
+
       this.setState({
         is_loading: true
       });
-
-      const data = await this.camera.takePictureAsync({ quality: 0.25, base64: true });
-      const selfie_ab = base64ToArrayBuffer.decode(data.base64);
 
       try {
         const facedetect_instance_options = { ...base_instance_options };
