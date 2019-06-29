@@ -7,7 +7,7 @@ An React Native attendance app with facial recognition feature.
 -   [Node.js](https://nodejs.org/en/)
 -   [Yarn](https://yarnpkg.com/en/)
 -   [Microsoft Azure Account](https://azure.microsoft.com/en-in/free/) - set up Face API on Cognitive Services (free tier is plenty).
--   [IoT device (optional if you only want facial recognition and not proximity)] - Raspberry Pi 3 was used in this tutorial. But any IoT device that has bluetooth, WiFi, and is able to run Node.js can be used as well.
+-   IoT device (optional if you only want facial recognition and not proximity) - Raspberry Pi 3 was used in this tutorial. But any IoT device that has bluetooth, WiFi, and is able to run Node.js can be used as well.
 
 ## Getting Started
 
