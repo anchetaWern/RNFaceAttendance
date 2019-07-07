@@ -1,6 +1,8 @@
 # RNFaceAttendance
 An React Native attendance app with facial recognition feature.
 
+You can find the tutorial at: [https://pusher.com/tutorials/facial-recognition-react-native](https://pusher.com/tutorials/facial-recognition-react-native)
+
 ### Prerequisites
 
 -   React Native development environment
